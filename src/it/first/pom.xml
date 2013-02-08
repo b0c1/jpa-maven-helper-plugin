@@ -8,8 +8,8 @@
     <name>${project.artifactId}</name>
     <packaging>pom</packaging>
     <modules>
-        <module>../dependency-1</module>
-        <module>../dependency-2</module>
-        <module>../first-it</module>
+        <module>dependency-1</module>
+        <module>dependency-2</module>
+        <module>first-it</module>
     </modules>
 </project>
