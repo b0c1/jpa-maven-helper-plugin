@@ -162,10 +162,12 @@ public class PersistenceGeneratorMojo
             }
         } else {
             Reflections reflections = new Reflections(config);
+            Set<String> foundClassByFilter = new HashSet<String>();
             for (Class<? extends Annotation> annotation : annotations) {
                 getLog().debug("Found " + annotation.getClass().getName() + ": " + reflections.getStore().getTypesAnnotatedWith(annotation.getName()).size());
-                response.put("default", reflections.getStore().getTypesAnnotatedWith(annotation.getName()));
+                foundClassByFilter.addAll(reflections.getStore().getTypesAnnotatedWith(annotation.getName()));
             }
+            response.put("default", foundClassByFilter);
 
         }
         return response;
