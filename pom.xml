@@ -131,7 +131,30 @@
 
         </plugins>
     </reporting>
+    <distributionManagement>
+        <site>
+            <id>jpa-maven-helper-plugin</id>
+            <url>gitsite:git@github.com/b0c1/jpa-maven-helper-plugin/</url>
+        </site>
+    </distributionManagement>
     <build>
+        <extensions>
+            <extension>
+                <groupId>org.apache.maven.scm</groupId>
+                <artifactId>maven-scm-provider-gitexe</artifactId>
+                <version>1.3</version>
+            </extension>
+            <extension>
+                <groupId>org.apache.maven.scm</groupId>
+                <artifactId>maven-scm-manager-plexus</artifactId>
+                <version>1.3</version>
+            </extension>
+            <extension>
+                <groupId>org.kathrynhuxtable.maven.wagon</groupId>
+                <artifactId>wagon-gitsite</artifactId>
+                <version>0.3.1</version>
+            </extension>
+        </extensions>
         <pluginManagement>
             <plugins>
                 <plugin>
