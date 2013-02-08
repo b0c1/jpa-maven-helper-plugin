@@ -16,9 +16,9 @@ package hu.javaportal.maven.plugin;
  * limitations under the License.
  */
 
-import com.jcabi.aether.Aether;
-import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.project.MavenProject;
 import org.reflections.Reflections;
 import org.reflections.scanners.ResourcesScanner;
 import org.reflections.scanners.SubTypesScanner;
@@ -28,13 +28,9 @@ import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 import org.reflections.util.FilterBuilder;
 import org.sonatype.aether.RepositorySystemSession;
-import org.sonatype.aether.resolution.DependencyResolutionException;
-import org.sonatype.aether.util.artifact.DefaultArtifact;
-import org.sonatype.aether.util.artifact.JavaScopes;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.persistence.Embeddable;
@@ -124,26 +120,25 @@ public class PersistenceGeneratorMojo
      */
     private UnitClassFilter[] filters;
 
-
-    protected Set<URL> getDependenciesUris(URL[] moreUrl) throws MojoFailureException, MalformedURLException {
-        File repo = this.session.getLocalRepository().getBasedir();
-        Set<URL> jars = new HashSet<URL>();
-        try {
-            Aether aether = new Aether(this.getProject(), repo.getAbsolutePath());
-            for (Artifact a : getProject().getDependencyArtifacts()) {
-                List<org.sonatype.aether.artifact.Artifact> arts = aether.resolve(new DefaultArtifact(a.getGroupId(), a.getArtifactId(), a.getType(), a.getVersion()), JavaScopes.RUNTIME);
-                for (org.sonatype.aether.artifact.Artifact aa : arts) {
-                    jars.add(aa.getFile().toURI().toURL());
+    private Collection<URL> getDependenciesUris(boolean test) throws DependencyResolutionRequiredException {
+        List<String> selectedPath = test ? getProject().getTestClasspathElements() : getProject().getRuntimeClasspathElements();
+        List<URL> urls = new ArrayList<URL>();
+        for (String url : selectedPath) {
+            try {
+                File file = new File(url);
+                if (file.exists()) {
+                    urls.add(file.toURI().toURL());
+                } else {
+                    getLog().warn("File: " + file.getAbsolutePath() + " does not exists");
                 }
+            } catch (MalformedURLException e) {
+                getLog().error(e);
             }
-        } catch (DependencyResolutionException e) {
-            throw new MojoFailureException(e.getMessage());
         }
-        jars.addAll(Arrays.asList(moreUrl));
-        return jars;
+        return urls;
     }
 
-    private Map<String, Set<String>> parseAnnotatedClasses(Collection<Class<? extends Annotation>> annotations, Set<URL> urls) {
+    private Map<String, Set<String>> parseAnnotatedClasses(Collection<Class<? extends Annotation>> annotations, Collection<URL> urls) {
 
         Map<String, Set<String>> response = new HashMap<String, Set<String>>();
         ConfigurationBuilder config = new ConfigurationBuilder().setUrls(ClasspathHelper.forManifest(urls)).setScanners(new TypeAnnotationsScanner(), new TypesScanner(), new SubTypesScanner(), new ResourcesScanner());
@@ -157,16 +152,21 @@ public class PersistenceGeneratorMojo
                     }
                     config.filterInputsBy(filterBuilder);
                 }
+                Set<String> foundClassByFilter = new HashSet<String>();
                 Reflections reflections = new Reflections(config);
                 for (Class<? extends Annotation> annotation : annotations) {
-                    response.put(filter.getName(), reflections.getStore().getTypesAnnotatedWith(annotation.getName()));
+                    getLog().debug("Found " + annotation.getClass().getName() + ": " + reflections.getStore().getTypesAnnotatedWith(annotation.getName()).size());
+                    foundClassByFilter.addAll(reflections.getStore().getTypesAnnotatedWith(annotation.getName()));
                 }
+                response.put(filter.getName(), foundClassByFilter);
             }
         } else {
             Reflections reflections = new Reflections(config);
             for (Class<? extends Annotation> annotation : annotations) {
+                getLog().debug("Found " + annotation.getClass().getName() + ": " + reflections.getStore().getTypesAnnotatedWith(annotation.getName()).size());
                 response.put("default", reflections.getStore().getTypesAnnotatedWith(annotation.getName()));
             }
+
         }
         return response;
 
@@ -175,7 +175,7 @@ public class PersistenceGeneratorMojo
     public XPathHelper readDocument(File persistenceFile) throws ParserConfigurationException, IOException, SAXException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
-        return new XPathHelper(builder.parse(persistenceFile));
+        return XPathHelper.newInstance(builder.parse(persistenceFile));
     }
 
 
@@ -192,24 +192,27 @@ public class PersistenceGeneratorMojo
     }
 
     private Set<String> getExistingClasses(String unitName, XPathHelper xpathHelper) throws XPathExpressionException {
-        NodeList nodes = xpathHelper.xpathNodes(queryAllClassByUnitName(unitName));
+        XPathHelper.XPathNodeList nodes = xpathHelper.getNodes(queryAllClassByUnitName(unitName));
         Set<String> result = new HashSet<String>();
-        for (int i = 0; i < nodes.getLength(); i++) {
-            result.add(nodes.item(i).getTextContent());
+        for (Node item : nodes) {
+            result.add(item.getTextContent());
         }
         return result;
     }
 
     private void writeClassNodes(String unitName, XPathHelper xPathHelper, Set<String> classList) throws XPathExpressionException {
-        NodeList pus = xPathHelper.xpathNodes(queryPerisistenceUnitByName(unitName));
-        for (int i = 0; i < pus.getLength(); i++) {
-            Node pu = pus.item(i);
+        XPathHelper.XPathNodeList pus = xPathHelper.getNodes(queryPerisistenceUnitByName(unitName));
+        for (Node pu : pus) {
             if (pu != null) {
+                Node providerNode = xPathHelper.getNode("provider", pu);
+                if (providerNode == null) {
+                    throw new RuntimeException("Provider not found for unit: " + unitName);
+                }
                 for (String className : classList) {
                     getLog().debug("[" + unitName + "] add class " + className);
-                    Element n = (Element) xPathHelper.getDocument().createElement("class");
+                    Element n = (Element) xPathHelper.getDoc().createElement("class");
                     n.setTextContent(className);
-                    pu.appendChild(n);
+                    providerNode.getParentNode().insertBefore(n, providerNode.getNextSibling());
                 }
             }
         }
@@ -217,9 +220,8 @@ public class PersistenceGeneratorMojo
 
 
     private void removeClassNodes(String unitName, XPathHelper xPathHelper) throws XPathExpressionException {
-        NodeList nodes = xPathHelper.xpathNodes(queryAllClassByUnitName(unitName));
-        for (int i = 0; i < nodes.getLength(); i++) {
-            Node node = nodes.item(i);
+        XPathHelper.XPathNodeList nodes = xPathHelper.getNodes(queryAllClassByUnitName(unitName));
+        for (Node node : nodes) {
             node.getParentNode().removeChild(node);
         }
     }
@@ -237,21 +239,44 @@ public class PersistenceGeneratorMojo
             removeClassNodes(unitName, xPathHelper);
             writeClassNodes(unitName, xPathHelper, classListByUnitName.get(unitName));
         }
-        writeDocumentToFile(persistenceXmlFile, xPathHelper.getDocument());
+        writeDocumentToFile(persistenceXmlFile, xPathHelper.getDoc());
     }
 
-    private void replaceClasses(File persistenceXmlFile, URL... moreUrl) throws XPathExpressionException, IOException, SAXException, ParserConfigurationException, MojoFailureException, TransformerException {
+    private void replaceClasses(File persistenceXmlFile, boolean test) throws XPathExpressionException, IOException, SAXException, ParserConfigurationException, MojoFailureException, TransformerException, DependencyResolutionRequiredException {
         XPathHelper xPathHelper = readDocument(persistenceXmlFile);
         List<Class<? extends Annotation>> annotations = Arrays.asList(Entity.class, MappedSuperclass.class, Embeddable.class, IdClass.class);
-        Map<String, Set<String>> filteredClassesByUnitName = parseAnnotatedClasses(annotations, getDependenciesUris(moreUrl));
+        Map<String, Set<String>> filteredClassesByUnitName = parseAnnotatedClasses(annotations, getDependenciesUris(test));
         getLog().debug("Persistence class filled");
         for (String unitName : filteredClassesByUnitName.keySet()) {
             getLog().debug("Inspect '" + unitName + "' persistence unit already defined classes...");
             Set<String> classList = filteredClassesByUnitName.get(unitName);
             classList.addAll(getExistingClasses(unitName, xPathHelper));
+
+
+            getLog().debug("Found " + classList.size() + " class to unit: " + unitName);
         }
         getLog().debug("Write back classes to persistence.xml");
         writeBackClasses(persistenceXmlFile, xPathHelper, filteredClassesByUnitName);
+    }
+
+    public void execute2() throws MojoFailureException {
+        final MavenProject project = this.getProject();
+        final List<?> classpathElements;
+        getLog().debug("WTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
+        if (project == null) {
+            classpathElements = null;
+        } else {
+            try {
+
+                classpathElements = project.getTestClasspathElements();
+                getLog().debug("Found elements" + classpathElements.size());
+                for (Object e : classpathElements) {
+                    getLog().debug(e.toString());
+                }
+            } catch (DependencyResolutionRequiredException e) {
+                getLog().error(e);
+            }
+        }
     }
 
     public void execute() throws MojoFailureException {
@@ -261,14 +286,15 @@ public class PersistenceGeneratorMojo
 
             if (persistenceXml.exists()) {
                 getLog().debug(persistenceXml.toString() + " found");
-                replaceClasses(persistenceXml, outputDirectory.toURI().toURL());
+                replaceClasses(persistenceXml, false);
             }
             getLog().debug("Check " + testPersistenceXml);
             if (testPersistenceXml.exists()) {
                 getLog().debug(testPersistenceXml.toString() + " found");
-                replaceClasses(testPersistenceXml, outputDirectory.toURI().toURL(), testOutputDirectory.toURI().toURL());
+                replaceClasses(testPersistenceXml, true);
             }
         } catch (Exception e) {
+            getLog().error(e);
             throw new MojoFailureException(e.getMessage());
         }
 

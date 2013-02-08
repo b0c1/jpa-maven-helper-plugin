@@ -36,6 +36,9 @@
                         <filter>
                             <name>test1</name>
                         </filter>
+                        <filter>
+                            <name>test</name>
+                        </filter>
                     </filters>
                 </configuration>
                 <executions>
