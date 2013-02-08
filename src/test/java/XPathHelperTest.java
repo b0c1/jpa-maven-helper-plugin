@@ -8,7 +8,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
 
-public class XPathTest {
+public class XPathHelperTest {
     @Test
     public void relativePathTest() throws IOException, ParserConfigurationException, SAXException, XPathExpressionException {
         XPathHelper helper = XPathHelper.newInstance(getClass().getResourceAsStream("/META-INF/persistence.xml"));
