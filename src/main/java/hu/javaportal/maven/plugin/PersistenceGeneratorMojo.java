@@ -62,6 +62,7 @@ import java.util.*;
  *
  * @goal generate-entities
  * @phase process-test-classes
+ * @requiresDependencyResolution test
  */
 public class PersistenceGeneratorMojo
         extends AbstractPluginMojo {
