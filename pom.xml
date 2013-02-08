@@ -11,7 +11,7 @@
     <version>1.0.0-SNAPSHOT</version>
     <name>JPA Maven Helper plugin</name>
     <description>
-       JPA Maven Helper plugin
+        JPA Maven Helper plugin
     </description>
     <licenses>
         <license>
@@ -22,6 +22,20 @@
         </license>
     </licenses>
     <inceptionYear>2013</inceptionYear>
+    <mailingLists>
+        <mailingList>
+            <archive>http://groups.google.com/group/jpa-maven-helper-plugin</archive>
+        </mailingList>
+    </mailingLists>
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/b0c1/${project.artifactId}/issues</url>
+    </issueManagement>
+    <scm>
+        <connection>scm:git:git@github.com:b0c1/${project.artifactId}.git</connection>
+        <developerConnection>scm:git:git@github.com:b0c1/${project.artifactId}.git</developerConnection>
+        <url>https://github.com/b0c1/${project.artifactId}</url>
+    </scm>
     <organization>
         <name>Janos Haber</name>
         <url>http://b0c1.javaportal.hu/</url>
