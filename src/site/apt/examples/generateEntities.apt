@@ -1,0 +1,66 @@
+ ------
+ Generaing Elements in <<<persisitence.xml>>> files
+ ------
+ Janos Haber
+ ------
+ 2013-02-07
+ ------
+
+ Generaing Elements in <<<persisitence.xml>>> files
+
+ * Summary
+
+ The <<<generate-entities>>> goals scan the the classpath and dependencies jar, looking for JPA entities, mapped superclasses, embeddable and id classes.
+ The plugin collect all classes and add their names to the persistence.xml selected persistence unit. The persistence unit in the test packages visible only in the test persistence.xml.
+
+ * Generate the entities
+
+ ** To generate all found entity to all persistence unit
+ +---+
+    <plugin>
+      <groupId>hu.javaportal.maven.plugin</groupId>
+      <artifactId>jpa-maven-helper-plugin</artifactId>
+      <version>${project.version}</version>
+      <executions>
+        <execution>
+          <id>Collect and write JPA entities to persistence.xml</id>
+          <goals>
+            <goal>generate-entities</goal>
+          </goals>
+        </execution>
+      </executions>
+    </plugin>
+ +---+
+
+ ** Filter package by persistence unit, if you define one or more filter, you need to define ALL persistence unit (the non existing unit will be ignored)
+ +---+
+    <plugin>
+      <groupId>hu.javaportal.maven.plugin</groupId>
+      <artifactId>jpa-maven-helper-plugin</artifactId>
+      <version>${project.version}</version>
+      <executions>
+        <execution>
+          <id>Collect and write JPA entities to persistence.xml</id>
+          <goals>
+            <goal>generate-entities</goal>
+          </goals>
+        </execution>
+        <configuration>
+            <filters>
+                <!-- In the persistence unit named 'test2' only the test.sub and test.sub2 package persistence unit exists (plus the manual added <class> entries -->
+                <filter>
+                    <name>test2</name>
+                    <packages>
+                        <package>test.sub</package>
+                        <package>test.sub2</package>
+                    </packages>
+                </filter>
+                <!-- If no packages defined, all entities will be written -->
+                <filter>
+                    <name>test1</name>
+                </filter>
+            </filters>
+        </configuration>
+      </executions>
+    </plugin>
+ +---+

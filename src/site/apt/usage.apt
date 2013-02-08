@@ -1,0 +1,64 @@
+ ------
+ Usage
+ ------
+ Janos Haber
+ ------
+ 2013-02-07
+ ------
+
+
+Usage
+
+* Summary
+
+ The <<<jpa-maven-helper-plugin>>> help
+
+* Installation
+
+ Install the plugin as you would any other Maven plugin.  In your
+ <<<<build>>>>'s <<<<plugins>>>> stanza, include a <<<<plugin>>>>
+ element referencing the <<<jpa-maven-helper-plugin>>>:
+
++---+
+  <plugin>
+    <groupId>hu.javaportal.maven.plugin</groupId>
+    <artifactId>jpa-maven-helper-plugin</artifactId>
+    <version>${project.version}</version>
+    <!-- ...more to come. -->
+  </plugin>
++---+
+
+* Goal selection
+
+ Please see the {{{./plugin-info.html}Goals}} page for more
+ details on individual goals.
+
+** <<<generate-entities>>>
+
+ Collect all @Entity annotated classes in classpath and dependencies.jar.
+ Without filtering all found entities put persistence.xml &lt;class&gt; entry.
+ The persistence.xml in test directory contains all found entities plus the test classpath entities.
+
+ This goal binds by default to the <<<process-test-classes>>> phase.
+
+ Here is an example of configuring the plugin to run this goal using
+ the defaults:
+
++---+
+   <plugin>
+     <groupId>hu.javaportal.maven.plugin</groupId>
+     <artifactId>jpa-maven-helper-plugin</artifactId>
+     <version>${project.version}</version>
+     <executions>
+       <execution>
+         <id>Collect and write JPA entities to persistence.xml</id>
+         <goals>
+           <goal>generate-entities</goal>
+         </goals>
+       </execution>
+     </executions>
+   </plugin>
++---+
+
+ You may bind this goal to another phase, but be aware that the goal scans <class> information, not <source> information, so it needs to be a goal that occurs after a compilation step.  In practice, there
+ is rarely a need to select a different phase.

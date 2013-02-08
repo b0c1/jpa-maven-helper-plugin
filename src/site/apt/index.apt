@@ -1,0 +1,21 @@
+ ------
+ Introduction
+ ------
+ Janos Haber
+ ------
+ 2013-02-07
+ ------
+
+
+JPA Maven Helper Plugin
+
+  The plugin helps to develop multi module jpa applications. The original idea comes from Laird Nelson JPA Maven Plugin {http://ljnelson.github.com/jpa-maven-plugin}
+
+* Goals Overview
+
+  * {{{<goal>.html}prefix:generate-entities}} This goal generate <class> entries in persistence.xml file.
+
+* Usage
+
+  General instructions on how to use the Plugin Name can be found on the {{{usage.html}usage page}}.
+
