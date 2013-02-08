@@ -163,7 +163,7 @@
                     <postBuildHookScript>verify</postBuildHookScript>
                     <debug>true</debug>
                     <pomIncludes>
-                        <pomInclude>**/pom.xml</pomInclude>
+                        <pomInclude>*/pom.xml</pomInclude>
                     </pomIncludes>
                     <!-- no extension required -->
                 </configuration>
